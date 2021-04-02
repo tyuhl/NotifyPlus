@@ -94,9 +94,9 @@ def updateList(notificationTxt) {
 	if (showTimestamp) {
 		dateNow = new Date()
 		sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
-		notificationTxt = sdf.format(dateNow) + ":  " + notificationTxt
+		notificationTxt = "<div class=\"npl-date\" style=\"display:inline-block; padding-right: 5px\">" + sdf.format(dateNow) + ": </div><div class=\"npl-text\" style=\"display:inline-block; padding-right: 5px\" >" + notificationTxt + "</div>"
 	}
-	NotifyAllMsg = "<span class=\"notifier\">" + notificationTxt + "<br />" + device.currentValue("Notify1") + "<br />" + device.currentValue("Notify2") + "<br />" + device.currentValue("Notify3") + "<br />" + device.currentValue("Notify4") + "</span>"
+	NotifyAllMsg = "<ul class=\"np0l-span\" style=\"list-style-type: none; margin:0; padding:0\"><li>" + notificationTxt + "</li><li>" + device.currentValue("Notify1") + "</li><li>" + device.currentValue("Notify2") + "</li><li>" + device.currentValue("Notify3") + "</li><li>" + device.currentValue("Notify4") + "</li></ul>"
 	sendEvent(name:"Notify4", value: device.currentValue("Notify3"))
 	sendEvent(name:"Notify3", value: device.currentValue("Notify2"))
 	sendEvent(name:"Notify2", value: device.currentValue("Notify1"))
