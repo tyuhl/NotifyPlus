@@ -44,13 +44,14 @@ metadata {
 		attribute "Notify2", "string"
 		attribute "Notify3", "string"
 		attribute "Notify4", "string"
-		attribute "NotifyAllMsg", "string"
+		attribute "Notify5", "string"
 
 		command "reset"
 	}
 	preferences {
 		section("Logging") {
 			input("showTimestamp", "bool", title:"Add Timestamp to Notification", defaultValue: true)
+			input("dateFormat", "string", title: "Advanced setting: Date Format", defaultValue: "MM/dd/yyyy HH:mm:ss")
 			input "logging", "enum", title: "Log Level", required: false, defaultValue: "INFO", options: ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"]
 		}
 	}
@@ -66,6 +67,7 @@ void installed()
 {
 	log("installed called", "trace")
 	showTimestamp = true
+	dateFormat = "MM/dd/yyyy HH:mm:ss"
 	reset()
 }
 
@@ -93,14 +95,17 @@ def deviceNotification(notificationTxt){
 def updateList(notificationTxt) {
 	if (showTimestamp) {
 		dateNow = new Date()
-		sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
+		sdf = new SimpleDateFormat(dateFormat)
 		notificationTxt = "<div class=\"npl-date\" style=\"display:inline-block; padding-right: 5px\">" + sdf.format(dateNow) + ": </div><div class=\"npl-text\" style=\"display:inline-block; padding-right: 5px\" >" + notificationTxt + "</div>"
+	} else {
+		notificationTxt = "<div class=\"npl-text\" style=\"display:inline-block; padding-right: 5px\" >" + notificationTxt + "</div>"
 	}
-	NotifyAllMsg = "<ul class=\"np0l-span\" style=\"list-style-type: none; margin:0; padding:0\"><li>" + notificationTxt + "</li><li>" + device.currentValue("Notify1") + "</li><li>" + device.currentValue("Notify2") + "</li><li>" + device.currentValue("Notify3") + "</li><li>" + device.currentValue("Notify4") + "</li></ul>"
+	newHtml = "<ul class=\"np0l-ul\" style=\"list-style-type:none; margin:0; padding:0; text-align:left\"><li>" + notificationTxt + "</li><li>" + device.currentValue("Notify1") + "</li><li>" + device.currentValue("Notify2") + "</li><li>" + device.currentValue("Notify3") + "</li><li>" + device.currentValue("Notify4") + "</li><li>" + device.currentValue("Notify5") +"</li></ul>"
+	sendEvent(name:"Notify5", value: device.currentValue("Notify4"))
 	sendEvent(name:"Notify4", value: device.currentValue("Notify3"))
 	sendEvent(name:"Notify3", value: device.currentValue("Notify2"))
 	sendEvent(name:"Notify2", value: device.currentValue("Notify1"))
-	sendEvent(name:"NotifyAllMsg", value: NotifyAllMsg)
+	sendEvent(name:"Html", value: newHtml)
 	sendEvent(name:"Notify1",value: notificationTxt)
 }
 
@@ -110,7 +115,8 @@ def reset() {
 	sendEvent(name:"Notify2", value: " ")
 	sendEvent(name:"Notify3", value: " ")
 	sendEvent(name:"Notify4", value: " ")
-	sendEvent(name:"NotifyAllMsg", value: " ")
+	sendEvent(name:"Notify5", value: " ")
+	sendEvent(name:"Html", value: " ")
 }
 
 def refresh() {
