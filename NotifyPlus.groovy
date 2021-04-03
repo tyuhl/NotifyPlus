@@ -29,14 +29,13 @@ def setVersion(){
 
 metadata {
 	definition (
-			name: "NotifyPlus Driver",
+			name: "NotifyPlus Tile Driver",
 			namespace: "tyuhl",
 			description:"Driver to provide notification tile",
 			importUrl:"",
 			author: "Tim Yuhl") {
 
 		capability 	"Notification"
-		capability	"Refresh"
 
 		attribute "NotificationText", "string"
 		attribute "Html", "string"
@@ -117,10 +116,6 @@ def reset() {
 	sendEvent(name:"Notify4", value: " ")
 	sendEvent(name:"Notify5", value: " ")
 	sendEvent(name:"Html", value: " ")
-}
-
-def refresh() {
-	log("refresh called", "trace")
 }
 
 /* boilerplate logging */
