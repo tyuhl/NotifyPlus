@@ -16,10 +16,13 @@
  *  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  *  History:
- *
+ *  4/5/21 - Initial release.
  *
  */
 import java.text.SimpleDateFormat
+import groovy.transform.Field
+
+@Field int nTextLimit = 100
 
 String appVersion()   { return "1.0.0" }
 def setVersion(){
@@ -32,7 +35,7 @@ metadata {
 			name: "NotifyPlus Tile Driver",
 			namespace: "tyuhl",
 			description:"Driver to provide notification tile",
-			importUrl:"",
+			importUrl:"https://raw.githubusercontent.com/tyuhl/NotifyPlus/main/NotifyPlus.groovy",
 			author: "Tim Yuhl") {
 
 		capability 	"Notification"
@@ -55,6 +58,7 @@ metadata {
 		}
 	}
 }
+
 /**
  * Boilerplate callback methods called by the framework
  */
@@ -87,11 +91,16 @@ void parse(String message)
 /* End of built-in callbacks */
 
 def deviceNotification(notificationTxt){
+	log("deviceNotification called", "trace")
+	if (notificationTxt.length() > nTextLimit) {
+		notificationTxt = notificationTxt.substring(0, (nTextLimit - 3)) + "..."
+	}
 	sendEvent(name:"NotificationTxt", value: notificationTxt)
 	updateList(notificationTxt)
 }
 
 def updateList(notificationTxt) {
+	log("updateList called", "trace")
 	if (showTimestamp) {
 		dateNow = new Date()
 		sdf = new SimpleDateFormat(dateFormat)
@@ -104,8 +113,9 @@ def updateList(notificationTxt) {
 	sendEvent(name:"Notify4", value: device.currentValue("Notify3"))
 	sendEvent(name:"Notify3", value: device.currentValue("Notify2"))
 	sendEvent(name:"Notify2", value: device.currentValue("Notify1"))
-	sendEvent(name:"Html", value: newHtml)
 	sendEvent(name:"Notify1",value: notificationTxt)
+	sendEvent(name:"Html", value: " ")
+	sendEvent(name:"Html", value: newHtml)
 }
 
 def reset() {
