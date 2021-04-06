@@ -22,7 +22,10 @@
 import java.text.SimpleDateFormat
 import groovy.transform.Field
 
-@Field int nTextLimit = 100
+@Field int attribLimit = 500
+@Field int nTextLimit = 50
+@Field int ulOverhead = 92
+@Field int liOverhead = 39
 
 String appVersion()   { return "1.0.0" }
 def setVersion(){
@@ -40,13 +43,11 @@ metadata {
 
 		capability 	"Notification"
 
-		attribute "NotificationText", "string"
 		attribute "Html", "string"
 		attribute "Notify1", "string"
 		attribute "Notify2", "string"
 		attribute "Notify3", "string"
 		attribute "Notify4", "string"
-		attribute "Notify5", "string"
 
 		command "reset"
 	}
@@ -92,40 +93,89 @@ void parse(String message)
 
 def deviceNotification(notificationTxt){
 	log("deviceNotification called", "trace")
-	if (notificationTxt.length() > nTextLimit) {
-		notificationTxt = notificationTxt.substring(0, (nTextLimit - 3)) + "..."
-	}
-	sendEvent(name:"NotificationTxt", value: notificationTxt)
 	updateList(notificationTxt)
 }
 
 def updateList(notificationTxt) {
 	log("updateList called", "trace")
+
+	notificationTxt = ellipsize(notificationTxt)
+
 	if (showTimestamp) {
 		dateNow = new Date()
 		sdf = new SimpleDateFormat(dateFormat)
-		notificationTxt = "<div class=\"npl-date\" style=\"display:inline-block; padding-right: 5px\">" + sdf.format(dateNow) + ": </div><div class=\"npl-text\" style=\"display:inline-block; padding-right: 5px\" >" + notificationTxt + "</div>"
+		notificationTxt = "<span class=\"npl-date\" style=\"padding-right:8px\">" + sdf.format(dateNow) + ":</span><span class=\"npl-text\">" + notificationTxt + "</span>"
 	} else {
-		notificationTxt = "<div class=\"npl-text\" style=\"display:inline-block; padding-right: 5px\" >" + notificationTxt + "</div>"
+		notificationTxt = "<span class=\"npl-text\">" + notificationTxt + "</span>"
 	}
-	newHtml = "<ul class=\"np0l-ul\" style=\"list-style-type:none; margin:0; padding:0; text-align:left\"><li>" + notificationTxt + "</li><li>" + device.currentValue("Notify1") + "</li><li>" + device.currentValue("Notify2") + "</li><li>" + device.currentValue("Notify3") + "</li><li>" + device.currentValue("Notify4") + "</li><li>" + device.currentValue("Notify5") +"</li></ul>"
-	sendEvent(name:"Notify5", value: device.currentValue("Notify4"))
-	sendEvent(name:"Notify4", value: device.currentValue("Notify3"))
-	sendEvent(name:"Notify3", value: device.currentValue("Notify2"))
-	sendEvent(name:"Notify2", value: device.currentValue("Notify1"))
-	sendEvent(name:"Notify1",value: notificationTxt)
-	sendEvent(name:"Html", value: " ")
+
+	def curHtml = device.currentValue("Html")
+	def clen = curHtml.length()
+	def newLength = notificationTxt.length()
+	if (clen + newLength > attribLimit) {
+		log("Trimming oldest message to fit new message", "trace")
+		trimMessages()
+	}
+
+	def innerList = buildList(notificationTxt)
+	newHtml = "<ul class=\"np0l-ul\" style=\"list-style-type:none; margin:0; padding:0; text-align:left\">" + innerList + "</ul>"
+
+	def newLen = newHtml.length()
+	log( "Current length of Html = ${clen}", "trace")
+	log( "New length of Html = ${newLen}", "trace")
+
+	sendEvent(name: "Notify4", value: device.currentValue("Notify3"))
+	sendEvent(name: "Notify3", value: device.currentValue("Notify2"))
+	sendEvent(name: "Notify2", value: device.currentValue("Notify1"))
+	sendEvent(name: "Notify1", value: notificationTxt)
 	sendEvent(name:"Html", value: newHtml)
 }
 
 def reset() {
 	log("reset called", "trace")
-	sendEvent(name:"Notify1", value: " ")
-	sendEvent(name:"Notify2", value: " ")
-	sendEvent(name:"Notify3", value: " ")
-	sendEvent(name:"Notify4", value: " ")
-	sendEvent(name:"Notify5", value: " ")
+	sendEvent(name: "Notify1", value: " ")
+	sendEvent(name: "Notify2", value: " ")
+	sendEvent(name: "Notify3", value: " ")
+	sendEvent(name: "Notify4", value: " ")
 	sendEvent(name:"Html", value: " ")
+}
+
+private trimMessages() {
+	String label
+	String entry
+	for( int i = 4; i >=0 ; i--) {
+		label = "Notify${i}"
+		entry = device.currentValue(label)
+		if( entry == " ") {
+			continue;
+		} else {
+			sendEvent(name: label, value: " ")
+			break;
+		}
+	}
+}
+private buildList(newEntry) {
+	def innerList = "<li>" + newEntry + "</li>"
+	String label
+	String entry
+
+	for( int i = 1; i < 5; i++) {
+		label = "Notify${i}"
+		entry = device.currentValue(label)
+		if( entry == " ") {
+			break;
+		}
+		innerList += "<li>" + entry + "</li>"
+	}
+
+	return innerList
+}
+
+private ellipsize(txtToShorten) {
+	if (txtToShorten.length() > nTextLimit) {
+		txtToShorten = txtToShorten.substring(0, (nTextLimit - 3)) + "..."
+	}
+	return txtToShorten
 }
 
 /* boilerplate logging */
