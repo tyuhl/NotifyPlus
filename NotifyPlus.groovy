@@ -15,6 +15,8 @@
  *  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  *  ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
+ * Inspired by a similar device by thebearmay
+ * *
  *  History:
  *  4/5/21 - Initial release.
  *
@@ -22,10 +24,9 @@
 import java.text.SimpleDateFormat
 import groovy.transform.Field
 
-@Field int attribLimit = 500
-@Field int nTextLimit = 50
-@Field int ulOverhead = 92
-@Field int liOverhead = 39
+@Field int attribLimit = 1024
+@Field int messageSize = 4
+@Field int maxTextLen = 75
 
 String appVersion()   { return "1.0.0" }
 def setVersion(){
@@ -52,9 +53,10 @@ metadata {
 		command "reset"
 	}
 	preferences {
-		section("Logging") {
+		section("Prefs") {
 			input("showTimestamp", "bool", title:"Add Timestamp to Notification", defaultValue: true)
 			input("dateFormat", "string", title: "Advanced setting: Date Format", defaultValue: "MM/dd/yyyy HH:mm:ss")
+			input("maxLineLen", "number", title: "Set Maximum Message Length", defaultValue: maxTextLen)
 			input "logging", "enum", title: "Log Level", required: false, defaultValue: "INFO", options: ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"]
 		}
 	}
@@ -72,6 +74,7 @@ void installed()
 	log("installed called", "trace")
 	showTimestamp = true
 	dateFormat = "MM/dd/yyyy HH:mm:ss"
+	maxLineLen = maxTextLen
 	reset()
 }
 
@@ -111,24 +114,55 @@ def updateList(notificationTxt) {
 
 	def curHtml = device.currentValue("Html")
 	def clen = curHtml.length()
-	def newLength = notificationTxt.length()
-	if (clen + newLength > attribLimit) {
-		log("Trimming oldest message to fit new message", "trace")
-		trimMessages()
+
+	// wack old messages if needed to keep under max attrib length
+	int i = 0
+	String newHtml
+	int newLen
+	String[] Messages = deserializeMessages()
+	while( i < 5 ) {
+		def innerList = buildList(Messages, notificationTxt)
+		newHtml = "<ul class=\"npl-ul\" style=\"list-style-type:none; padding:0; text-align:left\">" + innerList + "</ul>"
+		newLen = newHtml.length()
+		if (newLen > attribLimit) {
+			log("Trimming old messages to fit new message", "trace")
+			for( int j = 3; j >= 0 ; j-- ) {
+				if (Messages[j] == " "){
+					continue;
+				} else {
+					Messages[j] = " "
+					break;
+				}
+			}
+		}
+		else {
+			break;
+		}
+		i++
 	}
 
-	def innerList = buildList(notificationTxt)
-	newHtml = "<ul class=\"np0l-ul\" style=\"list-style-type:none; margin:0; padding:0; text-align:left\">" + innerList + "</ul>"
-
-	def newLen = newHtml.length()
-	log( "Current length of Html = ${clen}", "trace")
-	log( "New length of Html = ${newLen}", "trace")
-
-	sendEvent(name: "Notify4", value: device.currentValue("Notify3"))
-	sendEvent(name: "Notify3", value: device.currentValue("Notify2"))
-	sendEvent(name: "Notify2", value: device.currentValue("Notify1"))
-	sendEvent(name: "Notify1", value: notificationTxt)
+	Messages[3] = Messages[2]
+	Messages[2] = Messages[1]
+	Messages[1] = Messages[0]
+	Messages[0] = notificationTxt
+	serializeMessages(Messages)
 	sendEvent(name:"Html", value: newHtml)
+}
+
+def serializeMessages(String[] Messages) {
+	sendEvent(name: "Notify1", value: Messages[0])
+	sendEvent(name: "Notify2", value: Messages[1])
+	sendEvent(name: "Notify3", value: Messages[2])
+	sendEvent(name: "Notify4", value: Messages[3])
+}
+
+def deserializeMessages() {
+	String[] Messages = [" ", " ", " ", " "]
+	Messages[0] = device.currentValue("Notify1")
+	Messages[1] = device.currentValue("Notify2")
+	Messages[2] = device.currentValue("Notify3")
+	Messages[3] = device.currentValue("Notify4")
+	return Messages
 }
 
 def reset() {
@@ -140,40 +174,20 @@ def reset() {
 	sendEvent(name:"Html", value: " ")
 }
 
-private trimMessages() {
-	String label
-	String entry
-	for( int i = 4; i >=0 ; i--) {
-		label = "Notify${i}"
-		entry = device.currentValue(label)
-		if( entry == " ") {
-			continue;
-		} else {
-			sendEvent(name: label, value: " ")
-			break;
-		}
-	}
-}
-private buildList(newEntry) {
+private buildList(String[] Messages, newEntry) {
 	def innerList = "<li>" + newEntry + "</li>"
-	String label
-	String entry
-
-	for( int i = 1; i < 5; i++) {
-		label = "Notify${i}"
-		entry = device.currentValue(label)
-		if( entry == " ") {
+	for( int i = 0; i < 4; i++) {
+		if (Messages[i] == " ") {
 			break;
 		}
-		innerList += "<li>" + entry + "</li>"
+		innerList += "<li>" + Messages[i] + "</li>"
 	}
-
 	return innerList
 }
 
 private ellipsize(txtToShorten) {
-	if (txtToShorten.length() > nTextLimit) {
-		txtToShorten = txtToShorten.substring(0, (nTextLimit - 3)) + "..."
+	if (txtToShorten.length() > maxLineLen) {
+		txtToShorten = txtToShorten.substring(0, (int)(maxLineLen - 3)) + "..."
 	}
 	return txtToShorten
 }
