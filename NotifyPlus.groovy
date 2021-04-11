@@ -107,9 +107,9 @@ def updateList(notificationTxt) {
 	if (showTimestamp) {
 		dateNow = new Date()
 		sdf = new SimpleDateFormat(dateFormat)
-		notificationTxt = "<span class=\"npl-date\" style=\"padding-right:8px\">" + sdf.format(dateNow) + ":</span><span class=\"npl-text\">" + notificationTxt + "</span>"
+		notificationTxt = "<tr><td class=\"npl-date\" style=\"text-align:left;\">" + sdf.format(dateNow) + ":</td><td class=\"npl-text\" style=\"text-align:left;padding-left:5px\">" + notificationTxt + "</td></tr>"
 	} else {
-		notificationTxt = "<span class=\"npl-text\">" + notificationTxt + "</span>"
+		notificationTxt = "<td class=\"npl-text\" style=\"text-align:left\">" + notificationTxt + "</td>"
 	}
 
 	def curHtml = device.currentValue("Html")
@@ -122,10 +122,10 @@ def updateList(notificationTxt) {
 	String[] Messages = deserializeMessages()
 	while( i < 5 ) {
 		def innerList = buildList(Messages, notificationTxt)
-		newHtml = "<ul class=\"npl-ul\" style=\"list-style-type:none; padding:0; text-align:left\">" + innerList + "</ul>"
+		newHtml = "<table class=\"npl-tbl\">" + innerList + "</table>"
 		newLen = newHtml.length()
 		if (newLen > attribLimit) {
-			log("Trimming old messages to fit new message", "trace")
+			log("Trimming old messages to fit new message", "info")
 			for( int j = 3; j >= 0 ; j-- ) {
 				if (Messages[j] == " "){
 					continue;
@@ -140,6 +140,8 @@ def updateList(notificationTxt) {
 		}
 		i++
 	}
+	newLen = newHtml.length()
+	log("Total Message Length = ${newLen}", "trace")
 
 	Messages[3] = Messages[2]
 	Messages[2] = Messages[1]
@@ -175,12 +177,12 @@ def reset() {
 }
 
 private buildList(String[] Messages, newEntry) {
-	def innerList = "<li>" + newEntry + "</li>"
+	def innerList = newEntry
 	for( int i = 0; i < 4; i++) {
 		if (Messages[i] == " ") {
 			break;
 		}
-		innerList += "<li>" + Messages[i] + "</li>"
+		innerList += Messages[i]
 	}
 	return innerList
 }
